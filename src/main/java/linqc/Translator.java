@@ -3,7 +3,6 @@ package linqc;
 import java.util.ArrayList;
 import java.util.List;
 import linqc.parser.JLinqLexer;
-import linqc.parser.JLinqParser;
 import linqc.parser.JLinqParser.FromClauseContext;
 import linqc.parser.JLinqParser.GroupClauseContext;
 import linqc.parser.JLinqParser.OrderbyClauseContext;
@@ -15,12 +14,8 @@ import linqc.parser.JLinqParser.QueryExpressionContext;
 import linqc.parser.JLinqParser.SelectClauseContext;
 import linqc.parser.JLinqParser.SelectOrGroupClauseContext;
 import linqc.parser.JLinqParserBaseVisitor;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.misc.Interval;
@@ -52,22 +47,10 @@ public final class Translator {
      * @throws TranslationException for syntax errors and for query clauses not supported yet
      */
     public static String translate(String source, String sourceName) {
-        JLinqLexer lexer = new JLinqLexer(CharStreams.fromString(source, sourceName));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        JLinqParser parser = new JLinqParser(tokens);
-        SyntaxErrors errors = new SyntaxErrors(sourceName);
-        lexer.removeErrorListeners();
-        lexer.addErrorListener(errors);
-        parser.removeErrorListeners();
-        parser.addErrorListener(errors);
-
-        ParseTree tree = parser.compilationunit();
-        // ANTLR still returns a (partial) tree after syntax errors; don't translate that.
-        errors.throwIfAny();
-
-        Translator translator = new Translator(sourceName, tokens);
-        TokenStreamRewriter rewriter = new TokenStreamRewriter(tokens);
-        for (QueryExpressionContext query : outermostQueries(tree)) {
+        SourceFile file = SourceFile.parse(source, sourceName);
+        Translator translator = new Translator(sourceName, file.tokens());
+        TokenStreamRewriter rewriter = new TokenStreamRewriter(file.tokens());
+        for (QueryExpressionContext query : outermostQueries(file.tree())) {
             rewriter.replace(query.start, query.stop, translator.translateQuery(query));
         }
         return rewriter.getText();
@@ -77,7 +60,7 @@ public final class Translator {
         String java = query(query);
         // Clauses keep their own lines (see whitespaceBefore). If a newline sat somewhere else
         // in the query, e.g. right after "where", add it back at the end so later lines don't move.
-        int lost = newlines(textOf(query)) - newlines(java);
+        int lost = SourceFile.newlines(textOf(query)) - SourceFile.newlines(java);
         return java + "\n".repeat(Math.max(0, lost));
     }
 
@@ -206,30 +189,4 @@ public final class Translator {
         return found;
     }
 
-    private static int newlines(String text) {
-        return (int) text.chars().filter(c -> c == '\n').count();
-    }
-
-    /** Collects syntax errors as "file:line:column: message", columns counted from 1. */
-    private static final class SyntaxErrors extends BaseErrorListener {
-
-        private final String sourceName;
-        private final List<String> messages = new ArrayList<>();
-
-        SyntaxErrors(String sourceName) {
-            this.sourceName = sourceName;
-        }
-
-        @Override
-        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
-                                int charPositionInLine, String msg, RecognitionException e) {
-            messages.add(String.format("%s:%d:%d: %s", sourceName, line, charPositionInLine + 1, msg));
-        }
-
-        void throwIfAny() {
-            if (!messages.isEmpty()) {
-                throw new TranslationException(String.join("\n", messages));
-            }
-        }
-    }
 }

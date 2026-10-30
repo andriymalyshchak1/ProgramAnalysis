@@ -47,6 +47,17 @@ class ExamplesTest {
         assertEquals(expected, runAndCapture(className, java, fileName));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("examples")
+    void mergingQueriesDoesNotChangeTheOutput(Path example) throws Exception {
+        String fileName = example.getFileName().toString();
+        String className = fileName.substring(0, fileName.length() - ".jlinq".length());
+        String merged = QueryMerger.merge(Files.readString(example), fileName);
+        String expected = Files.readString(example.resolveSibling(className + ".out"));
+
+        assertEquals(expected, runAndCapture(className, Translator.translate(merged, fileName), fileName));
+    }
+
     @Test
     void javacErrorsPointAtTheJlinqLine() {
         String jlinq = """

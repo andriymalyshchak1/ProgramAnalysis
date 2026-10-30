@@ -31,7 +31,7 @@
 
 /*
  Modified for linq-java (ECE 361G): renamed to JLinq* and extended with LINQ query
- expressions. Every change is marked "added for linq-java".
+ expressions. Every change is marked "added for linq-java" or "changed for linq-java".
  Original: https://github.com/antlr/grammars-v4/tree/85e2dd1779ce556111ef98ead5d62a9858e95599/java/java
 */
 
@@ -277,10 +277,11 @@ arrayInitializer
     : '{' (variableInitializer (',' variableInitializer)* ','?)? '}'
     ;
 
+// Changed for linq-java: the original repeated "packageName? typeIdentifier" with "+", which
+// accepts names without dots between them, so "o instanceof Integer k" parsed as a type
+// "Integer k" instead of a pattern that declares k.
 classType:
-    (
-      ( packageName '.' annotation* )? typeIdentifier typeArguments?
-    )+ ( '.' annotation* typeIdentifier typeArguments? )*
+    ( packageName '.' annotation* )? typeIdentifier typeArguments? ( '.' annotation* typeIdentifier typeArguments? )*
     ;
 
 packageName:

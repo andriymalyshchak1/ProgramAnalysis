@@ -1,0 +1,60 @@
+import java.util.ArrayList;
+import java.util.List;
+
+// Queries that only filter another query's result. See what the analysis finds with
+//   ./gradlew -q run --args="--report examples/Merging.jlinq"
+// and check that merging changes nothing with
+//   ./gradlew -q run --args="--merge --run examples/Merging.jlinq"
+public class Merging {
+
+    record Person(String name, int age, String city) {
+    }
+
+    public static void main(String[] args) {
+        List<Person> people = new ArrayList<>(List.of(
+                new Person("Ana", 34, "Austin"),
+                new Person("Ben", 17, "Dallas"),
+                new Person("Cleo", 22, "Austin"),
+                new Person("Dev", 17, "Houston"),
+                new Person("Eli", 45, "Dallas")));
+
+        // Merged: both filters end up in one where clause.
+        var adults = from p in people where p.age() >= 18 select p;
+        var austinAdults = from a in adults where a.city().equals("Austin") select a;
+        System.out.println(names(austinAdults));
+
+        // Merged: a chain of three becomes one query, filtered before it is sorted.
+        var byAge = from p in people orderby p.age() select p;
+        var notTeens = from p in byAge where p.age() >= 20 select p;
+        var withL = from p in notTeens where p.name().contains("l") select p;
+        System.out.println(names(withL));
+
+        // Merged with "into": the first query's select changes the elements.
+        var young = from p in people where p.age() < 30 select p.name();
+        var shortNames = from n in young where n.length() == 3 select n;
+        System.out.println(shortNames.toList());
+
+        // Not merged: 'dallas' is also used on its own.
+        var dallas = from p in people where p.city().equals("Dallas") select p;
+        var dallasAdults = from d in dallas where d.age() >= 18 select d;
+        System.out.println(names(dallasAdults) + " of " + dallas.count());
+
+        // Not merged: the filter uses 'city', which doesn't exist yet where 'everyone' is built.
+        var everyone = from p in people select p;
+        for (String city : List.of("Austin", "Houston")) {
+            var here = from p in everyone where p.city().equals(city) select p;
+            System.out.println(city + ": " + names(here));
+        }
+
+        // Merged, even though 'people' changes in between: the first query has already read
+        // the old list, and merging leaves the first query where it is.
+        var seniors = from p in people where p.age() > 40 select p;
+        people = List.of();
+        var dallasSeniors = from s in seniors where s.city().equals("Dallas") select s;
+        System.out.println(names(dallasSeniors));
+    }
+
+    static List<String> names(Iterable<Person> people) {
+        return (from p in people select p.name()).toList();
+    }
+}
