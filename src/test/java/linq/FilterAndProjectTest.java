@@ -48,6 +48,16 @@ class FilterAndProjectTest {
     }
 
     @Test
+    void queriesWorkOnArrays() {
+        String[] words = {"kiwi", "fig", "pear"};
+        Query<String> fourLetters = Query.from(words).where(w -> w.length() == 4);
+        assertEquals(List.of("kiwi", "pear"), fourLetters.toList());
+
+        words[1] = "date"; // like a list, the array is read again on each iteration
+        assertEquals(List.of("kiwi", "date", "pear"), fourLetters.toList());
+    }
+
+    @Test
     void operatorsChain() {
         Query<String> adultCities = PEOPLE.where(p -> p.age() >= 18).select(Person::city).distinct();
         assertEquals(List.of("Austin", "Dallas"), adultCities.toList());

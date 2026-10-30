@@ -1,0 +1,4 @@
+[APPLE, DATE, KIWI, PEAR]
+select and from are still usable as variable names
+[fig]
+[fig, kiwi]

@@ -1,0 +1,43 @@
+import java.util.List;
+
+// Grouping, continuing a query with "into", and queries nested inside queries.
+public class Cities {
+
+    record Person(String name, int age, String city) {
+    }
+
+    public static void main(String[] args) {
+        List<Person> people = List.of(
+                new Person("Ana", 34, "Austin"),
+                new Person("Ben", 17, "Dallas"),
+                new Person("Cleo", 22, "Austin"),
+                new Person("Dev", 17, "Houston"),
+                new Person("Eli", 45, "Dallas"));
+
+        var sizes = from p in people
+                    group p by p.city() into g
+                    orderby g.count() descending, g.key()
+                    select g.key() + "=" + g.count();
+        System.out.println(sizes.toList());
+
+        var namesByCity = from p in people
+                          group p.name() by p.city() into g
+                          select g.key() + ": " + g.toList();
+        for (String line : namesByCity) {
+            System.out.println(line);
+        }
+
+        // A nested query can use the outer query's variable (here p).
+        var olderThanSomeoneLocal = from p in people
+                                    where (from q in people
+                                           where q.city().equals(p.city()) && q.age() < p.age()
+                                           select q).any()
+                                    select p.name();
+        System.out.println("Older than someone in their city: " + olderThanSomeoneLocal.toList());
+
+        var oldestPerCity = from p in people
+                            group p by p.city() into g
+                            select g.key() + " -> " + (from p in g orderby p.age() descending select p.name()).first();
+        System.out.println(oldestPerCity.toList());
+    }
+}

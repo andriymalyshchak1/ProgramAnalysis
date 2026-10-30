@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'antlr'
+    id 'application'
 }
 
 repositories {
@@ -11,6 +12,12 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+application {
+    // ./gradlew -q run --args="--run examples/Adults.jlinq"
+    mainClass = 'linqc.Main'
+    applicationName = 'linqc'
 }
 
 dependencies {
@@ -26,11 +33,16 @@ dependencies {
 // Grammars live in src/main/antlr; the generated lexer/parser/visitor are
 // written to build/generated-src and compiled with the rest of the code.
 generateGrammarSource {
-    arguments += ['-visitor', '-no-listener']
+    // JLinqParser reads its token types from the JLinqLexer.tokens file that the
+    // lexer generates, so -lib points ANTLR at the folder where that file lands.
+    def generatedParserDir = layout.buildDirectory.dir('generated-src/antlr/main/linqc/parser').get().asFile
+    arguments += ['-visitor', '-no-listener', '-lib', generatedParserDir.path]
+    doFirst { generatedParserDir.mkdirs() } // ANTLR rejects a -lib folder that doesn't exist yet
 }
 
 test {
     useJUnitPlatform()
+    inputs.dir('examples') // ExamplesTest reads these, so editing one should rerun the tests
     testLogging {
         events 'passed', 'failed', 'skipped'
     }

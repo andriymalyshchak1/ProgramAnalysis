@@ -1,0 +1,6 @@
+[Austin=2, Dallas=2, Houston=1]
+Austin: [Ana, Cleo]
+Dallas: [Ben, Eli]
+Houston: [Dev]
+Older than someone in their city: [Ana, Eli]
+[Austin -> Ana, Dallas -> Eli, Houston -> Dev]

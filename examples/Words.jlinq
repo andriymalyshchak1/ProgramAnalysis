@@ -1,0 +1,27 @@
+import java.util.ArrayList;
+import java.util.List;
+
+// Queries over arrays, query keywords used as ordinary names, and deferred execution.
+public class Words {
+
+    public static void main(String[] args) {
+        String[] words = {"kiwi", "fig", "pear", "apple", "date"};
+
+        var longWords = from w in words
+                        where w.length() > 3
+                        orderby w.length() descending, w
+                        select w.toUpperCase();
+        System.out.println(longWords.toList());
+
+        // The query keywords are contextual: outside a query they are ordinary names.
+        String select = "select", from = "from";
+        System.out.println(select + " and " + from + " are still usable as variable names");
+
+        // Deferred execution: a query runs again every time it is iterated.
+        List<String> basket = new ArrayList<>(List.of("fig"));
+        var withAnI = from f in basket where f.contains("i") select f;
+        System.out.println(withAnI.toList());
+        basket.add("kiwi");
+        System.out.println(withAnI.toList());
+    }
+}

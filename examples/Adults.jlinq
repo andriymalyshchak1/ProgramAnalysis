@@ -1,0 +1,33 @@
+import java.util.List;
+
+// Filtering, sorting and projecting with where, orderby and select.
+public class Adults {
+
+    record Person(String name, int age, String city) {
+    }
+
+    public static void main(String[] args) {
+        List<Person> people = List.of(
+                new Person("Ana", 34, "Austin"),
+                new Person("Ben", 17, "Dallas"),
+                new Person("Cleo", 22, "Austin"),
+                new Person("Dev", 17, "Houston"),
+                new Person("Eli", 45, "Dallas"));
+
+        var adults = from p in people
+                     where p.age() >= 18
+                     orderby p.name()
+                     select p.name();
+        System.out.println("Adults: " + adults.toList());
+
+        var oldestFirst = from p in people
+                          orderby p.age() descending, p.name()
+                          select p.name() + " (" + p.age() + ")";
+        System.out.println("Oldest first: " + oldestFirst.toList());
+
+        var austinTeens = from p in people
+                          where p.city().equals("Austin") && p.age() < 20
+                          select p;
+        System.out.println("Teens in Austin: " + austinTeens.count());
+    }
+}

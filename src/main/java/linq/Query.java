@@ -42,6 +42,11 @@ public class Query<T> implements Iterable<T> {
         return new Query<>(Objects.requireNonNull(source, "source"));
     }
 
+    /** A query over an array. Like a query over a list, it sees later changes to the array. */
+    public static <T> Query<T> from(T[] source) {
+        return from(Arrays.asList(Objects.requireNonNull(source, "source")));
+    }
+
     @SafeVarargs
     public static <T> Query<T> of(T... items) {
         return from(Arrays.asList(items));
